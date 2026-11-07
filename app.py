@@ -250,8 +250,13 @@ with st.sidebar:
     st.metric('Películas en el catálogo', f"{N:,}")
     st.metric('Usuarios de entrenamiento', f"{A['R'].shape[0]:,}")
     st.markdown('**Pesos del híbrido**')
-    st.dataframe(pd.DataFrame({'Existente': A['pesos'], 'Nuevo': A['pesos_nuevo']})
-                 .rename(index=NOMBRES), width='stretch')
+    CORTOS = {'cf': 'CF', 'mf': 'SVD', 'contenido': 'Contenido', 'ncf': 'NeuMF'}
+    pesos_df = pd.DataFrame({'Modelo': [CORTOS[c] for c in CORTOS],
+                             'Existente': [A['pesos'][c] for c in CORTOS],
+                             'Nuevo': [A['pesos_nuevo'][c] for c in CORTOS]})
+    st.dataframe(pesos_df, hide_index=True, width='stretch',
+                 column_config={'Existente': st.column_config.NumberColumn(format='%.2f', width='small'),
+                                'Nuevo': st.column_config.NumberColumn(format='%.2f', width='small')})
     st.caption('Los pesos se ajustaron con búsqueda en grilla sobre usuarios de validación (Recall@10). '
                'Un usuario nuevo no tiene embedding NeuMF, por eso usa la mejor combinación sin NCF.')
 

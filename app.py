@@ -25,17 +25,26 @@ DRIVE_ZIP_ID = '1uxpG8tHPcJgnfVW5K2D45p4VOwdKj0nU'
 st.set_page_config(page_title='CineMatch · Recomendador Híbrido', page_icon='🎬', layout='wide')
 
 
+@st.cache_resource(show_spinner='Descargando modelos entrenados (≈31 MB, solo la primera vez)…')
 def asegurar_artefactos():
-    """En el despliegue (Streamlit Cloud) los artefactos no están en el repo: se descargan de Drive una vez."""
+    """En Streamlit Cloud los artefactos no están en el repo: se descargan de Drive una sola vez.
+    cache_resource hace que, si varias sesiones abren la app a la vez, solo una descargue y las demás esperen."""
     if os.path.exists(os.path.join(ARTS, 'config.json')):
-        return
-    import zipfile, gdown
-    with st.spinner('Descargando modelos entrenados (≈31 MB, solo la primera vez)…'):
-        destino = os.path.join(BASE, 'artefactos_app.zip')
+        return True
+    import zipfile, tempfile, gdown
+    fd, destino = tempfile.mkstemp(suffix='.zip')   # archivo temporal único (evita choques entre sesiones)
+    os.close(fd)
+    try:
         gdown.download(id=DRIVE_ZIP_ID, output=destino, quiet=True)
+        if not zipfile.is_zipfile(destino):
+            raise RuntimeError('No se pudo descargar artefactos_app.zip desde Google Drive. '
+                               'Revisa que el archivo esté compartido como «Cualquier persona con el enlace».')
         with zipfile.ZipFile(destino) as z:
             z.extractall(os.path.dirname(ARTS))
-        os.remove(destino)
+    finally:
+        if os.path.exists(destino):
+            os.remove(destino)
+    return True
 
 
 asegurar_artefactos()
